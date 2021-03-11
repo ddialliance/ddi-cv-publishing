@@ -108,21 +108,22 @@ public class PublishingMain
 					// downloading RDF
 					String rdfURL = "https://vocabularies2-dev.cessda.eu/api/download/rdf/" + vocName + "/" + slVersion
 							+ "?lv=" + versionParameter.toString();
-					download( rdfURL, vocDir, vocName, ".rdf" );
+					System.out.println( rdfURL );
+					// download( rdfURL, vocDir, vocName, ".rdf" );
 
 					// downloading HTML
 					String htmlURL = "https://vocabularies2-dev.cessda.eu/api/download/html/" + vocName + "/"
 							+ slVersion
 							+ "?lv=" + versionParameter.toString();
-					download( htmlURL, vocDir, vocName, ".html" );
+					// download( htmlURL, vocDir, vocName, ".html" );
 
 					// downloading PDF
 					String pdfURL = "https://vocabularies2-dev.cessda.eu/api/download/pdf/" + vocName + "/" + slVersion
 							+ "?lv=" + versionParameter.toString();
-					download( pdfURL, vocDir, vocName, ".pdf" );
+					// download( pdfURL, vocDir, vocName, ".pdf" );
 
 					// create DDI-XML
-					createDDI( vocDir, vocName, t );
+					// createDDI( vocDir, vocName, t );
 
 				}
 			}
