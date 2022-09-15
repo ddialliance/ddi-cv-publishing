@@ -1,19 +1,20 @@
 package org.ddialliance.cvpublishing;
 
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
+import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.net.http.HttpResponse.BodyHandlers;
+import java.nio.file.Path;
 
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerException;
@@ -21,6 +22,7 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.stream.StreamSource;
 
+import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 
@@ -41,8 +43,10 @@ public class PublishingMain
 					.getResourceAsStream( "transformation/SKOS2CodeList.xsl" );
 			Transformer t = tf.newTransformer( new StreamSource( xslStream ) );
 
-			URL url = new URL( "https://vocabularies.cessda.eu/v1/vocabulary" );
-			URLConnection conn = url.openConnection();
+			URL url = new URL(
+					"https://vocabularies.cessda.eu/v2/search/vocabularies?agency="
+							+ args[0].replaceAll( " ", "%20" ) +
+							"&size=100" );
 
 			File rootDir = new File( args[1] );
 			if ( rootDir.exists() && (!rootDir.isDirectory() || !rootDir.canWrite()) )
@@ -51,6 +55,7 @@ public class PublishingMain
 				rootDir.mkdirs();
 
 			// open the stream and put it into BufferedReader
+			URLConnection conn = url.openConnection();
 			BufferedReader br = new BufferedReader(
 					new InputStreamReader( conn.getInputStream(), "UTF-8" ) );
 
@@ -63,70 +68,69 @@ public class PublishingMain
 			br.close();
 			JSONParser parser = new JSONParser();
 			JSONObject root = (JSONObject) parser.parse( buffer.toString() );
-			if ( root.containsKey( args[0] ) )
+			JSONArray vocabularies = (JSONArray) root.get( "vocabularies" );
+			for ( Object object : vocabularies )
 			{
-				JSONObject agency = (JSONObject) root.get( args[0] );
-				for ( Iterator<String> iterator = agency.keySet().iterator(); iterator.hasNext(); )
-				{
-					String vocName = iterator.next();
-					System.out.println( vocName );
-					File vocDir = new File( rootDir, vocName );
-					vocDir.mkdirs();
-					JSONObject voc = (JSONObject) agency.get( vocName );
-					StringBuffer versionParameter = new StringBuffer();
-					String slVersion = "";
-					for ( Iterator<String> langIterator = voc.keySet().iterator(); langIterator.hasNext(); )
-					{
-						String langText = langIterator.next();
-						JSONObject lang = (JSONObject) voc.get( langText );
-						ArrayList<String> versionList = new ArrayList<String>();
-						Object[] versions = lang.keySet().toArray();
-						for ( int i = 0; i < versions.length; i++ )
-						{
-							versionList.add( (String) versions[i] );
-						}
-						Collections.sort( versionList );
+				JSONObject vocabulary = (JSONObject) object;
+				String vocabularyName = vocabulary.get( "notation" ).toString();
+				String vocabularyVersion = vocabulary.get( "versionNumber" ).toString();
 
-						if ( langText.contains( "(SL)" ) )
-						{
-							if ( voc.keySet().size() > 1 )
-								versionParameter.insert( 0, "_" );
-							versionParameter.insert( 0, versionList.get( versionList.size() - 1 ) );
-							versionParameter.insert( 0, "-" );
-							versionParameter.insert( 0, langText.substring( 0, langText.indexOf( "(" ) ) );
-							slVersion = versionList.get( versionList.size() - 1 );
-						}
-						else
-						{
-							versionParameter.append( langText.substring( 0, langText.indexOf( "(" ) ) );
-							versionParameter.append( "-" );
-							versionParameter.append( versionList.get( versionList.size() - 1 ) );
-							versionParameter.append( "_" );
-						}
-					}
+				// downloading RDF
+				// https://vocabularies.cessda.eu/v2/vocabularies/TopicClassification/4.0
+				/*
+				 * <option value="application/xml">application/xml</option> <option
+				 * value="application/ld+json">application/ld+json</option> <option
+				 * value="text/html">text/html</option> <option
+				 * value="application/json">application/json</option> <option
+				 * value="application/pdf">application/pdf</option> <option
+				 * value="application/xhtml+xml">application/xhtml+xml</option>
+				 */
+				download( rootDir, vocabularyVersion, vocabularyName, ".rdf", "application/xml" );
+				download( rootDir, vocabularyVersion, vocabularyName, ".pdf", "application/pdf" );
+				download( rootDir, vocabularyVersion, vocabularyName, ".html", "text/html" );
 
-					// downloading RDF
-					String rdfURL = "https://vocabularies2-dev.cessda.eu/api/download/rdf/" + vocName + "/" + slVersion
-							+ "?lv=" + versionParameter.toString();
-					System.out.println( rdfURL );
-					// download( rdfURL, vocDir, vocName, ".rdf" );
-
-					// downloading HTML
-					String htmlURL = "https://vocabularies2-dev.cessda.eu/api/download/html/" + vocName + "/"
-							+ slVersion
-							+ "?lv=" + versionParameter.toString();
-					// download( htmlURL, vocDir, vocName, ".html" );
-
-					// downloading PDF
-					String pdfURL = "https://vocabularies2-dev.cessda.eu/api/download/pdf/" + vocName + "/" + slVersion
-							+ "?lv=" + versionParameter.toString();
-					// download( pdfURL, vocDir, vocName, ".pdf" );
-
-					// create DDI-XML
-					// createDDI( vocDir, vocName, t );
-
-				}
+				// create DDI-XML // createDDI( vocDir, vocName, t );
 			}
+			/*
+			 * if ( root.containsKey( args[0] ) ) { JSONObject agency = (JSONObject) root.get(
+			 * args[0] ); for ( Iterator<String> iterator = agency.keySet().iterator();
+			 * iterator.hasNext(); ) { String vocName = iterator.next(); System.out.println( vocName
+			 * ); File vocDir = new File( rootDir, vocName ); vocDir.mkdirs(); JSONObject voc =
+			 * (JSONObject) agency.get( vocName ); StringBuffer versionParameter = new
+			 * StringBuffer(); String slVersion = ""; for ( Iterator<String> langIterator =
+			 * voc.keySet().iterator(); langIterator.hasNext(); ) { String langText =
+			 * langIterator.next(); JSONObject lang = (JSONObject) voc.get( langText );
+			 * ArrayList<String> versionList = new ArrayList<String>(); Object[] versions =
+			 * lang.keySet().toArray(); for ( int i = 0; i < versions.length; i++ ) {
+			 * versionList.add( (String) versions[i] ); } Collections.sort( versionList );
+			 * 
+			 * if ( langText.contains( "(SL)" ) ) { if ( voc.keySet().size() > 1 )
+			 * versionParameter.insert( 0, "_" ); versionParameter.insert( 0, versionList.get(
+			 * versionList.size() - 1 ) ); versionParameter.insert( 0, "-" );
+			 * versionParameter.insert( 0, langText.substring( 0, langText.indexOf( "(" ) ) );
+			 * slVersion = versionList.get( versionList.size() - 1 ); } else {
+			 * versionParameter.append( langText.substring( 0, langText.indexOf( "(" ) ) );
+			 * versionParameter.append( "-" ); versionParameter.append( versionList.get(
+			 * versionList.size() - 1 ) ); versionParameter.append( "_" ); } }
+			 * 
+			 * // downloading RDF String rdfURL =
+			 * "https://vocabularies2-dev.cessda.eu/api/download/rdf/" + vocName + "/" + slVersion +
+			 * "?lv=" + versionParameter.toString(); System.out.println( rdfURL ); // download(
+			 * rdfURL, vocDir, vocName, ".rdf" );
+			 * 
+			 * // downloading HTML String htmlURL =
+			 * "https://vocabularies2-dev.cessda.eu/api/download/html/" + vocName + "/" + slVersion
+			 * + "?lv=" + versionParameter.toString(); // download( htmlURL, vocDir, vocName,
+			 * ".html" );
+			 * 
+			 * // downloading PDF String pdfURL =
+			 * "https://vocabularies2-dev.cessda.eu/api/download/pdf/" + vocName + "/" + slVersion +
+			 * "?lv=" + versionParameter.toString(); // download( pdfURL, vocDir, vocName, ".pdf" );
+			 * 
+			 * // create DDI-XML // createDDI( vocDir, vocName, t );
+			 * 
+			 * } }
+			 */
 		}
 		catch (Exception e)
 		{
@@ -158,25 +162,49 @@ public class PublishingMain
 		System.exit( 0 );
 	}
 
-	private void download( String urlString, File vocDir, String vocName, String format ) throws IOException
+	private void download(
+			File rootDir,
+			String vocabularyVersion,
+			String vocabularyName,
+			String fileSuffix,
+			String contentType ) throws IOException
 	{
-		System.out.println( urlString );
-		URL rdfSource = new URL( urlString );
-		File file = new File( vocDir, vocName + format );
-		if ( !file.exists() )
-			file.createNewFile();
-		BufferedWriter writer = new BufferedWriter(
-				new OutputStreamWriter( new FileOutputStream( file ) ) );
-		BufferedReader reader = new BufferedReader(
-				new InputStreamReader( rdfSource.openConnection().getInputStream() ) );
-		String rdfLine;
-		while ((rdfLine = reader.readLine()) != null)
+		try
 		{
-			writer.write( rdfLine );
-			writer.newLine();
+			String urlString = "https://vocabularies.cessda.eu/v2/vocabularies/"
+					+ vocabularyName + "/" + vocabularyVersion;
+			System.out.println( urlString );
+			File vocDir = new File( rootDir, vocabularyName + "/" + vocabularyVersion );
+			vocDir.mkdirs();
+			File file = new File( vocDir, vocabularyName + fileSuffix );
+			HttpClient client = HttpClient.newHttpClient();
+			HttpRequest request = HttpRequest.newBuilder( URI.create( urlString ) )
+					.header( "accept", contentType )
+					.build();
+			HttpResponse<Path> response = client.send( request, BodyHandlers.ofFile( file.toPath() ) );
+			System.out.println( response );
 		}
-		reader.close();
-		writer.close();
+		catch (Exception ex)
+		{
+
+		}
+		// URL source = new URL( urlString );
+		// if ( !file.exists() )
+		// file.createNewFile();
+		// BufferedWriter writer = new BufferedWriter(
+		// new OutputStreamWriter( new FileOutputStream( file ) ) );
+		// URLConnection connection = source.openConnection();
+		// connection.setRequestProperty( "Content-Type", contentType );
+		// BufferedReader reader = new BufferedReader(
+		// new InputStreamReader( connection.getInputStream() ) );
+		// String rdfLine;
+		// while ((rdfLine = reader.readLine()) != null)
+		// {
+		// writer.write( rdfLine );
+		// writer.newLine();
+		// }
+		// reader.close();
+		// writer.close();
 	}
 
 	private void createDDI( File vocDir, String vocName, Transformer t ) throws IOException, TransformerException
