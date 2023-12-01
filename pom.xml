@@ -17,12 +17,6 @@
 
 	<dependencies>
 		<dependency>
-			<groupId>org.gesis.commons</groupId>
-			<artifactId>commons-test</artifactId>
-			<version>0.6.0</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
 	       <groupId>com.googlecode.json-simple</groupId>
 	       <artifactId>json-simple</artifactId>
 	       <version>1.1.1</version>
@@ -147,25 +141,8 @@
 		</license>
 	</licenses>
 	<organization>
-		<name>GESIS – Leibniz-Institute for the Social Sciences</name>
-		<url>http://www.gesis.org</url>
+		<name>DDI Alliance</name>
+		<url>https://ddialliance.org/</url>
 	</organization>
-
-	<repositories>
-		<repository>
-			<id>gesis-${gesis.repository.visibility}</id>
-			<url>https://maven.gesis.org/repositories/gesis-${gesis.repository.visibility}</url>
-		</repository>
-	</repositories>
-	<distributionManagement>
-		<repository>
-			<id>gesis-${gesis.repository.visibility}-releases</id>
-			<url>https://maven.gesis.org/repositories/gesis-${gesis.repository.visibility}-releases</url>
-		</repository>
-		<snapshotRepository>
-			<id>gesis-${gesis.repository.visibility}-snapshots</id>
-			<url>https://maven.gesis.org/repositories/gesis-${gesis.repository.visibility}-snapshots</url>
-		</snapshotRepository>
-	</distributionManagement>
 
 </project>
