@@ -19,7 +19,7 @@
     <xsl:output method="xml" indent="yes"></xsl:output>
     
     <xsl:variable name="agency">int.ddi.cv</xsl:variable>
-    <xsl:variable name="cvID" select="generate-id()"/>
+    <xsl:variable name="cvID" select="//rdf:Description[rdf:type/@rdf:resource='http://www.w3.org/2004/02/skos/core#ConceptScheme']/skos:notation"/>
     <xsl:variable name="cvVersion" select="//rdf:Description[rdf:type/@rdf:resource='http://www.w3.org/2004/02/skos/core#ConceptScheme']/owl:versionInfo"/>
     
     <xsl:template match="rdf:RDF">
@@ -29,6 +29,7 @@
                     <r:Agency><xsl:value-of select="$agency"/></r:Agency>
                     <r:ID><xsl:value-of select="$cvID"/></r:ID>
                     <r:Version><xsl:value-of select="$cvVersion"/></r:Version>
+                    <r:UserID typeOfUserID="URI"><xsl:value-of select="//rdf:Description[rdf:type/@rdf:resource='http://www.w3.org/2004/02/skos/core#ConceptScheme']/@rdf:about"/></r:UserID>
                     <r:Label>
                         <xsl:for-each select="//rdf:Description[rdf:type/@rdf:resource='http://www.w3.org/2004/02/skos/core#ConceptScheme']/dcterms:title">
                             <r:Content>
@@ -58,29 +59,26 @@
     
     <xsl:template match="skos:hasTopConcept" mode="Code">
         <xsl:variable name="descriptionID" select="@rdf:resource"/>
-        <xsl:apply-templates select="//rdf:Description[@rdf:about=$descriptionID]" mode="Code">
-            <xsl:with-param name="code" select="position()"/>
-        </xsl:apply-templates>
+        <xsl:apply-templates select="//rdf:Description[@rdf:about=$descriptionID]" mode="Code"/>
     </xsl:template>
     
     <xsl:template match="rdf:Description" mode="Code">
-        <xsl:param name="code"/>
-        <xsl:param name="valuePrefix"/>
         <l:Code>
             <r:Agency><xsl:value-of select="$agency"/></r:Agency>
             <r:ID>
                 <xsl:value-of select="$cvID"/>
                 <xsl:text>-</xsl:text>
-                <xsl:value-of select="skos:notation"/>
+                <xsl:value-of select="substring-after(substring-after(substring-after(@rdf:about, $cvID),'/'),'/')"/>
                 <xsl:text>-Code</xsl:text>
             </r:ID>
             <r:Version><xsl:value-of select="$cvVersion"/></r:Version>
+            <r:UserID typeOfUserID="URI"><xsl:value-of select="@rdf:about"/></r:UserID>
             <r:CategoryReference>
                 <r:Agency><xsl:value-of select="$agency"/></r:Agency>
                 <r:ID>
                     <xsl:value-of select="$cvID"/>
                     <xsl:text>-</xsl:text>
-                    <xsl:value-of select="skos:notation"/>
+                    <xsl:value-of select="substring-after(substring-after(substring-after(@rdf:about, $cvID),'/'),'/')"/>
                     <xsl:text>-Category</xsl:text>
                 </r:ID>
                 <r:Version><xsl:value-of select="$cvVersion"/></r:Version>
@@ -88,21 +86,11 @@
             </r:CategoryReference>
             <r:Value>
                 <xsl:value-of select="skos:notation"/>
-                <!--
-                <xsl:value-of select="$valuePrefix"/>
-                <xsl:value-of select="$code"/>
-                -->
             </r:Value>
         </l:Code>
         <xsl:for-each select="skos:narrower">
             <xsl:variable name="descriptionID" select="@rdf:resource"/>
-            <xsl:apply-templates select="//rdf:Description[@rdf:about=$descriptionID]" mode="Code">
-                <xsl:with-param name="code" select="position()"/>
-                <xsl:with-param name="valuePrefix">
-                    <xsl:value-of select="$code"/>
-                    <xsl:text>.</xsl:text>
-                </xsl:with-param>
-            </xsl:apply-templates>
+            <xsl:apply-templates select="//rdf:Description[@rdf:about=$descriptionID]" mode="Code"/>
         </xsl:for-each>
     </xsl:template>
     
@@ -113,10 +101,11 @@
                <r:ID>
                    <xsl:value-of select="$cvID"/>
                    <xsl:text>-</xsl:text>
-                   <xsl:value-of select="skos:notation"/>
+                   <xsl:value-of select="substring-after(substring-after(substring-after(@rdf:about, $cvID),'/'),'/')"/>
                    <xsl:text>-Category</xsl:text>
                </r:ID>
                <r:Version><xsl:value-of select="$cvVersion"/></r:Version>
+               <r:UserID typeOfUserID="URI"><xsl:value-of select="@rdf:about"/></r:UserID>
                <l:CategoryName>
                    <xsl:value-of select="skos:notation"/>
                </l:CategoryName>

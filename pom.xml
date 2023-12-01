@@ -1,66 +1,171 @@
-<project
- xmlns="http://maven.apache.org/POM/4.0.0"
- xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
- xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
-  <modelVersion>4.0.0</modelVersion>
-  
-  <groupId>org.ddialliance</groupId>
-  <artifactId>ddi-cv-publishing</artifactId>
-  <version>0.0.1-SNAPSHOT</version>
-  <packaging>jar</packaging>
-  <name>ddi-cv-publishing</name>
-  
-  <properties>
-	<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-	<java.version>1.8</java.version>
-  </properties>
-	
-  <dependencies>
-	<dependency>
-	    <groupId>xalan</groupId>
-	    <artifactId>xalan</artifactId>
-	    <version>2.7.2</version>
-	</dependency>
-	<!-- https://mvnrepository.com/artifact/xerces/xerces -->
-	<dependency>
-	    <groupId>xerces</groupId>
-	    <artifactId>xerces</artifactId>
-	    <version>2.4.0</version>
-	</dependency>
-	<dependency>
-       <groupId>com.googlecode.json-simple</groupId>
-       <artifactId>json-simple</artifactId>
-       <version>1.1.1</version>
-    </dependency>
-  </dependencies>
-  <build>
-	<plugins>
-		<plugin>
-			<groupId>org.apache.maven.plugins</groupId>
-			<artifactId>maven-compiler-plugin</artifactId>
-			<version>3.8.1</version>
-			<configuration>
-				<source>1.8</source>
-				<target>1.8</target>
-			</configuration>
-		</plugin>
-		<plugin>
-			<groupId>org.apache.maven.plugins</groupId>
-			<artifactId>maven-source-plugin</artifactId>
-			<version>3.2.0</version>
-			<executions>
-				<execution>
-					<id>attach-sources</id>
-					<goals><goal>jar</goal></goals>
-				</execution>
-			</executions>
-		</plugin>
-	</plugins>
-  </build>
-	<pluginRepositories>
-		<pluginRepository>
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<groupId>org.ddialliance</groupId>
+	<artifactId>cvpublishing</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
+
+	<properties>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<gesis.repository.visibility>private</gesis.repository.visibility><!-- valid values: (private|public) -->
+		<java.version>11</java.version>
+		<doclint>none</doclint><!-- https://blog.joda.org/2014/02/turning-off-doclint-in-jdk-8-javadoc.html -->
+	</properties>
+
+	<dependencies>
+		<dependency>
+			<groupId>org.gesis.commons</groupId>
+			<artifactId>commons-test</artifactId>
+			<version>0.6.0</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+	       <groupId>com.googlecode.json-simple</groupId>
+	       <artifactId>json-simple</artifactId>
+	       <version>1.1.1</version>
+	    </dependency>
+		<dependency>
+		    <groupId>net.sf.saxon</groupId>
+		    <artifactId>Saxon-HE</artifactId>
+		    <version>11.3</version>
+		</dependency>
+	</dependencies>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-resources-plugin</artifactId>
+				<version>3.2.0</version>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>3.8.1</version>
+				<configuration>
+					<source>${java.version}</source>
+					<target>${java.version}</target>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-source-plugin</artifactId>
+				<version>3.2.0</version>
+				<executions>
+					<execution>
+						<id>attach-sources</id>
+						<goals><goal>jar</goal></goals>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-javadoc-plugin</artifactId>
+				<version>3.2.0</version>
+				<executions>
+					<execution>
+						<id>javadoc-jar</id>
+						<phase>package</phase>
+						<goals><goal>jar</goal></goals>
+						<configuration>
+							<quiet>true</quiet>
+							<charset>UTF-8</charset>
+							<docencoding>UTF-8</docencoding>
+							<source>8</source>
+							<docfilessubdirs>true</docfilessubdirs>
+							<includeDependencySources>true</includeDependencySources>
+							<!-- For includes or excludes use pattern groupId:artifactId, not java package names -->
+							<dependencySourceIncludes>
+								<dependencySourceInclude>org.gesis.commons:*</dependencySourceInclude>
+							</dependencySourceIncludes>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>pl.project13.maven</groupId>
+				<artifactId>git-commit-id-plugin</artifactId>
+				<version>4.0.2</version>
+				<executions>
+					<execution>
+						<id>get-the-git-infos</id><goals><goal>revision</goal></goals>
+					</execution>
+				</executions>
+				<configuration>
+					<verbose>false</verbose>
+					<failOnNoGitDirectory>false</failOnNoGitDirectory>
+					<dotGitDirectory>${project.basedir}/.git</dotGitDirectory>
+					<generateGitPropertiesFile>true</generateGitPropertiesFile>
+					<generateGitPropertiesFilename>${project.build.outputDirectory}/git.properties</generateGitPropertiesFilename>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<version>2.22.2</version>
+				<configuration>
+					<argLine>@{argLine} -Dfile.encoding=UTF-8</argLine>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.owasp</groupId>
+				<artifactId>dependency-check-maven</artifactId>
+				<version>6.0.1</version>
+				<configuration>
+					<!-- Specifies if the build should be failed if a CVSS score above a 
+					     specified level is identified. The default is 11 which means since 
+					     the CVSS scores are 0-10, by default the build will never fail. 
+					     Score 10 means the highest risk-->
+					<failBuildOnCVSS>10</failBuildOnCVSS>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.jacoco</groupId>
+				<artifactId>jacoco-maven-plugin</artifactId>
+				<version>0.8.6</version>
+				<executions>
+					<execution>
+						<goals><goal>prepare-agent</goal></goals>
+					</execution>
+					<execution>
+						<id>report</id>
+						<phase>test</phase>
+						<goals><goal>report</goal></goals>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
+
+	<licenses>
+		<license>
+			<name>Apache License, Version 2.0</name>
+			<url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+		</license>
+	</licenses>
+	<organization>
+		<name>GESIS – Leibniz-Institute for the Social Sciences</name>
+		<url>http://www.gesis.org</url>
+	</organization>
+
+	<repositories>
+		<repository>
 			<id>gesis-${gesis.repository.visibility}</id>
 			<url>https://maven.gesis.org/repositories/gesis-${gesis.repository.visibility}</url>
-		</pluginRepository>
-	</pluginRepositories>
+		</repository>
+	</repositories>
+	<distributionManagement>
+		<repository>
+			<id>gesis-${gesis.repository.visibility}-releases</id>
+			<url>https://maven.gesis.org/repositories/gesis-${gesis.repository.visibility}-releases</url>
+		</repository>
+		<snapshotRepository>
+			<id>gesis-${gesis.repository.visibility}-snapshots</id>
+			<url>https://maven.gesis.org/repositories/gesis-${gesis.repository.visibility}-snapshots</url>
+		</snapshotRepository>
+	</distributionManagement>
+
 </project>

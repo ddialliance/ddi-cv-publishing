@@ -1,0 +1,27 @@
+jar-test:
+  stage: test
+  image: docker-private.gesis.intra/gesis/dc-maven:5.3
+  script:
+    - mvn clean test jacoco:report
+  after_script:
+    - echo -n 'Branch coverage ' && grep -oE '<tfoot>.*</tfoot>' target/site/jacoco/index.html | grep -oE '[0-9]{1,3}%' | tail -1
+  only:
+    - master
+    - stable
+
+owasp-check:
+  stage: test
+  image: docker-private.gesis.intra/gesis/dc-maven:5.3
+  script:
+    - mvn org.owasp:dependency-check-maven:check
+  only:
+    - master
+
+maven.gesis.org:
+  stage: deploy
+  image: docker-private.gesis.intra/gesis/dc-maven:5.3
+  script:
+    - mvn deploy -DskipTests
+  only:
+    - master
+    - stable
