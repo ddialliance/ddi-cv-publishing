@@ -40,6 +40,9 @@ public class Collector
 			InputStream xslStreamDDI = this.getClass().getClassLoader()
 					.getResourceAsStream( "transformation/SKOS2CodeList.xsl" );
 			Transformer tDDI = tf.newTransformer( new StreamSource( xslStreamDDI ) );
+			InputStream xslStreamHTML = this.getClass().getClassLoader()
+					.getResourceAsStream( "transformation/SKOS2HTML.xsl" );
+			Transformer tHTML = tf.newTransformer( new StreamSource( xslStreamHTML ) );
 
 			URL allCurrentURL = new URL(
 					"https://vocabularies.cessda.eu/v2/search/vocabularies?agency="
@@ -83,22 +86,29 @@ public class Collector
 			{
 				JSONObject vocabulary = (JSONObject) object;
 				String vocabularyName = vocabulary.get( "notation" ).toString();
-				Set<String> allSlVersionsForVoc = ((JSONObject) ((JSONObject) allPublishedVocabularies.get( vocabularyName ))
-						.get( "en(SL)" )).keySet();
-
-				for ( Iterator<String> iterator = allSlVersionsForVoc.iterator(); iterator.hasNext(); )
+				if ( true )
 				{
-					String vocabularyVersion = iterator.next();
+					Set<String> allSlVersionsForVoc = ((JSONObject) ((JSONObject) allPublishedVocabularies.get( vocabularyName ))
+							.get( "en(SL)" )).keySet();
 
-					download( rootDir, vocabularyVersion, vocabularyName, ".rdf", "application/xml" );
-					Thread.sleep( 3000 );
-					download( rootDir, vocabularyVersion, vocabularyName, ".pdf", "application/pdf" );
-					Thread.sleep( 3000 );
-					downloadHTML( rootDir, vocabularyVersion, vocabularyName, ".html", "application/xhtml+xml" );
+					for ( Iterator<String> iterator = allSlVersionsForVoc.iterator(); iterator.hasNext(); )
+					{
+						String vocabularyVersion = iterator.next();
 
-					// create DDI-XML
-					transformRDF( rootDir, vocabularyVersion, vocabularyName, tDDI, ".rdf", ".xml" );
-					Thread.sleep( 9000 );
+						downloadRDF( rootDir, vocabularyVersion, vocabularyName, ".rdf", "application/xml" );
+						Thread.sleep( 3000 );
+						if ( !vocabularyName.equals( "ModeOfCollection" ) || !vocabularyVersion.startsWith( "4.0." ) )
+							download( rootDir, vocabularyVersion, vocabularyName, ".pdf", "application/pdf" );
+						// Thread.sleep( 3000 );
+						// downloadHTML( rootDir, vocabularyVersion, vocabularyName, ".html",
+						// "application/xhtml+xml" );
+
+						// create HTML from RDF
+						transformRDF( rootDir, vocabularyVersion, vocabularyName, tDDI, ".rdf", ".xml" );
+						// create DDI-XML
+						transformRDF( rootDir, vocabularyVersion, vocabularyName, tHTML, ".rdf", ".html" );
+						Thread.sleep( 9000 );
+					}
 				}
 			}
 		}
@@ -199,6 +209,49 @@ public class Collector
 			body = body.replaceAll( toReplaceShort, replacement );
 			body = body.replaceAll( toReplaceSL, replacement );
 			body = body.replaceAll( toReplaceTL, replacement );
+			FileWriter writer = new FileWriter( file );
+			writer.write( body );
+			writer.close();
+			System.out.println( response );
+		}
+		catch (Exception ex)
+		{
+
+		}
+	}
+
+	private void downloadRDF(
+			File rootDir,
+			String vocabularyVersion,
+			String vocabularyName,
+			String outputFileSuffix,
+			String contentType ) throws IOException
+	{
+		String vocabularyVersionShort = vocabularyVersion.substring( 0, vocabularyVersion.indexOf( ".", 2 ) );
+
+		String toReplace = "http://rdf-vocabulary.ddialliance.org/cv/"
+				+ vocabularyName + "/" + vocabularyVersionShort + "/";
+
+		String replacement = "http://rdf-vocabulary.ddialliance.org/cv/"
+				+ vocabularyName + "/" + vocabularyVersion + "/";
+		try
+		{
+			String urlString = "https://vocabularies.cessda.eu/v2/vocabularies/"
+					+ vocabularyName + "/" + vocabularyVersion;
+			File vocDir = new File( rootDir, vocabularyName + "/" + vocabularyVersion );
+			vocDir.mkdirs();
+			File toDeleteFile = new File( vocDir, vocabularyName + outputFileSuffix );
+			toDeleteFile.delete();
+			File file = new File( vocDir, vocabularyName + outputFileSuffix );
+
+			HttpClient client = HttpClient.newHttpClient();
+			HttpRequest request = HttpRequest.newBuilder( URI.create( urlString ) )
+					.header( "accept", contentType )
+					.build();
+			HttpResponse<String> response = client.send( request, BodyHandlers.ofString() );
+			String body = response.body();
+
+			body = body.replaceAll( toReplace, replacement );
 			FileWriter writer = new FileWriter( file );
 			writer.write( body );
 			writer.close();
