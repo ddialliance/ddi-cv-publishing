@@ -270,9 +270,10 @@
 								<caption>Code list</caption>
 								<thead>
 								<tr>
-				                    <th scope="col" style="width: 25%;">Code value</th>
-				                    <th scope="col" style="width: 25%;">Code descriptive term</th>
-				                    <th scope="col" style="width: 50%;">Code definition</th>
+				                    <th scope="col" style="width: 15%;">Code value</th>
+				                    <th scope="col" style="width: 30%;">Code URI</th>
+				                    <th scope="col" style="width: 15%;">Code descriptive term</th>
+				                    <th scope="col" style="width: 40%;">Code definition</th>
 								</tr>
 								</thead>
 								<tbody>
@@ -336,16 +337,17 @@
     	<xsl:param name="mylang"/>
     	<xsl:param name="paddingleft">0.5</xsl:param>
 		<tr>
-            <td style="width:25%;white-space:pre-line;word-break:break-all;word-wrap:break-word;">
+            <td style="width:15%;white-space:pre-line;word-break:break-all;word-wrap:break-word;">
                 <xsl:attribute name="style">
-                	<xsl:text>width:25%;white-space:pre-line;word-break:break-all;word-wrap:break-word;padding-left:</xsl:text>
+                	<xsl:text>width:20%;white-space:pre-line;word-break:break-all;word-wrap:break-word;padding-left:</xsl:text>
                     <xsl:value-of select="$paddingleft"/>
                     <xsl:text>em;</xsl:text>
                 </xsl:attribute>
             	<xsl:value-of select="skos:notation"/>
            	</td>
-            <td style="width: 25%;"><xsl:value-of select="skos:prefLabel[@xml:lang=$mylang]"/></td>
-            <td style="width: 50%;"><xsl:value-of select="skos:definition[@xml:lang=$mylang]"/></td>
+            <td style="width: 30%;"><xsl:value-of select="@rdf:about"/></td>
+            <td style="width: 15%;"><xsl:value-of select="skos:prefLabel[@xml:lang=$mylang]"/></td>
+            <td style="width: 40%;"><xsl:value-of select="skos:definition[@xml:lang=$mylang]"/></td>
 		</tr>
         <xsl:for-each select="skos:narrower">
             <xsl:variable name="descriptionID" select="@rdf:resource"/>
